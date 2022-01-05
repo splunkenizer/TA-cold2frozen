@@ -266,8 +266,8 @@ if __name__ == "__main__":
     logger.debug("peername is %s" % peer_name)
 
     bucket_name = bucket.split("/")[-1]
-    logFields.add('bucket_name', bucket_name)
-    logger.debug("bucket_name is %s" % bucket_name)
+    logFields.add('bucketname', bucket_name)
+    logger.debug("bucketname is %s" % bucket_name)
 
     # Get bucket UTC epoch start and UTC epoch end
     buckets_info = bucket_name.split('_')
@@ -309,7 +309,7 @@ if __name__ == "__main__":
     bucket_id = normalized_bucket_name_array[2]
     logFields.add('bucketid', bucket_id)
 
-    logFields.add('search_files', searchFilesRequired)
+    logFields.add('searchfiles', searchFilesRequired)
 
     normalized_bucket_name = "_".join(normalized_bucket_name_array)
     logFields.add('buckename_norm', normalized_bucket_name)
