@@ -11,7 +11,7 @@
 # exit 0 if copying of bucket was successfull, Splunk proceed to the purge of the frozen bucket
 # exit 1 if copying of bucket has failed, Splunk will re-attempt continously to achive the bucket
 
-# To set the logginf level higher add this to /opt/splunk/etc/log-local.cfg
+# To set the logging level higher add this to /opt/splunk/etc/log-local.cfg
 # [python]
 # splunk.cold2frozen = DEBUG
 
@@ -44,6 +44,9 @@ def setup_logging():
     return logger
 
 logger = setup_logging()
+
+# Enable for debugging
+#logger.setLevel(logging.DEBUG)
 
 # Logging examples
 # logger.debug('debug message')
@@ -127,6 +130,15 @@ def getHostName():
     # Get the local hostname from the networking stack and split of the domainname if it exists
     localHostname = socket.gethostname().split(".")[0]
     return localHostname
+
+def getBucketSize(bucketPath):
+    size = 0
+    for path, dirs, files in os.walk(bucketPath):
+        for file in files:
+            filepath = os.path.join(path, file)
+            logger.debug("Getting size for file %s" % filepath)
+            size += os.path.getsize(filepath)
+    return size
 
 def getLock(lock_file, timeout=2):
     """ False if lock_file was locked, True otherwise """
@@ -297,6 +309,8 @@ if __name__ == "__main__":
     bucket_id = normalized_bucket_name_array[2]
     logFields.add('bucketid', bucket_id)
 
+    logFields.add('search_files', searchFilesRequired)
+
     normalized_bucket_name = "_".join(normalized_bucket_name_array)
     logFields.add('buckename_norm', normalized_bucket_name)
     logger.debug("normalized_bucket_name is %s" % normalized_bucket_name)
@@ -324,8 +338,9 @@ if __name__ == "__main__":
         journal_zst = os.path.join(rawdatadir, 'journal.zst')
         logger.debug("is it gz? %s" % os.path.isfile(journal_gz))
         logger.debug("is it zst? %s" % os.path.isfile(journal_zst))
-        
-        bucket_size_full = os.path.getsize(bucket)
+
+        # Bucket size in bytes        
+        bucket_size_full = getBucketSize(bucket)
         logFields.add('bucketsize_full_b', bucket_size_full)
         stripstart = time.time() * 1000
         if os.path.isfile(journal_zst) or os.path.isfile(journal_gz):
@@ -340,7 +355,7 @@ if __name__ == "__main__":
         logFields.add('striptime_ms', round(stripend - stripstart,3))
 
         # Bucket size in bytes
-        bucket_size = os.path.getsize(bucket) 
+        bucket_size = getBucketSize(bucket) 
         logFields.add('bucketsize_b', bucket_size)
 
         # Check if bucket has been transfered already, we need to cover both db and rb prefixes
@@ -357,12 +372,12 @@ if __name__ == "__main__":
             logger.debug('Warning: This bucket already exists as %s' % bucket_exists)
             logFields.add('status', 'existed')
 
-            # Get size of existing bucket
-            bucket_size_target = os.path.getsize(bucket_exists)
+            # Bucket size in bytes
+            bucket_size_target = getBucketSize(bucket_exists)
             logger.debug("bucket_size is %s, bucket_size_target is %s" % (bucket_size, bucket_size_target))
 
             if bucket_size != bucket_size_target:
-                msg = 'Bucket exists but sizes differ bucket=%s (size=%s) targetbucket=%s (targetsize=%s)' % (bucket_name, bucket_size, destdir, bucket_size_target)
+                msg = 'Bucket exists but sizes differ bucket=%s (size=%s) targetbucket=%s (targetsize=%s)' % (bucket, bucket_size, destdir, bucket_size_target)
                 logger.error(msg)
                 sys.exit(msg)
 
@@ -384,3 +399,4 @@ if __name__ == "__main__":
 
     logger.info(logFields.kvout())
     sys.exit()
+
