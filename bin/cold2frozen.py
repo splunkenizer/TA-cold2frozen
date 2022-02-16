@@ -377,7 +377,7 @@ if __name__ == "__main__":
             logger.debug("bucket_size is %s, bucket_size_target is %s" % (bucket_size, bucket_size_target))
 
             if bucket_size != bucket_size_target:
-                msg = 'Bucket exists but sizes differ bucket=%s (size=%s) targetbucket=%s (targetsize=%s)' % (bucket, bucket_size, destdir, bucket_size_target)
+                msg = 'Bucket exists but sizes differ bucket=%s (size=%s) targetbucket=%s (targetsize=%s)' % (bucket, bucket_size, bucket_exists, bucket_size_target)
                 logger.error(msg)
                 sys.exit(msg)
 
@@ -399,4 +399,3 @@ if __name__ == "__main__":
 
     logger.info(logFields.kvout())
     sys.exit()
-
