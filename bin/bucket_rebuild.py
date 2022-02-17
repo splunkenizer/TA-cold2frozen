@@ -4,7 +4,6 @@ from lib import libc2f
 from lib import libbuckets
 import os, sys
 import argparse
-import logging, logging.handlers
 import subprocess
 import re
 
