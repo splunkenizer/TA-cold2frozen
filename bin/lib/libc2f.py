@@ -63,7 +63,6 @@ class c2f:
 
         # Get default allowed custom values
         ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
-        RESTORE_DIR = config.get("cold2frozen", "RESTORE_DIR")
 
         # Check config exists
         if not os.path.isfile(config_inifile):
@@ -76,7 +75,6 @@ class c2f:
         config.read(config_inifile)
 
         return config
-
 
 class logDict(dict):
     # __init__ function 
