@@ -6,6 +6,7 @@ import os, sys
 import argparse
 import subprocess
 import re
+import logging
 
 def parse_output(c2f,output):
     output = output.split("\n")

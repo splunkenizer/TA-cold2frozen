@@ -5,6 +5,7 @@ import os, sys
 import argparse
 import datetime
 import shutil
+import logging
 
 def main():
 
@@ -67,7 +68,7 @@ def main():
             bucket_name = object.name
             bucket_dir = os.path.join(index_dir, object.name)
             bucket_stats = os.stat(bucket_dir)
-            c2f.logger.debug(bucket_stats)
+            c2f.logger.debug("bucketname=%s, destdir=%s %s" % (bucket_name, bucket_dir, bucket_stats))
             
             if datetime.datetime.fromtimestamp(bucket_stats.st_ctime) < check_tstamp:
                 destdir = os.path.join(index_dir,bucket_name)
