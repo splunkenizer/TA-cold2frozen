@@ -8,8 +8,7 @@ from lib import libbuckets
 import os, sys
 import argparse
 import logging, logging.handlers
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 def main():
 
@@ -22,7 +21,7 @@ def main():
     app_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
     #TODO: Remove for prod
-    c2f.logger.setLevel(logging.DEBUG)
+    #c2f.logger.setLevel(logging.DEBUG)
 
     c2f.logger.debug('Starting main()')
 
