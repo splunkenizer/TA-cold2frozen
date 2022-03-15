@@ -178,7 +178,7 @@ def handleNewBucket(base, files):
     # the only non file is the rawdata folder, which we want to archive
     for f in files:
         full = os.path.join(base, f)
-        if os.path.isfile(full):
+        if os.path.isfile(full) and not os.path.basename(f).startswith('journal.'):
             logger.debug('Removing file %s' % full)
             os.remove(full)
 
@@ -333,6 +333,7 @@ if __name__ == "__main__":
 
         # Strip of unneeded metadata files
         files = os.listdir(bucket)
+        rawdatafiles = os.listdir(os.path.join(bucket,rawdatadir))
         logger.debug("Filelist %s" % files)
         journal_gz = os.path.join(rawdatadir, 'journal.gz')
         journal_zst = os.path.join(rawdatadir, 'journal.zst')
@@ -346,6 +347,7 @@ if __name__ == "__main__":
         if os.path.isfile(journal_zst) or os.path.isfile(journal_gz):
             if not searchFilesRequired:
                 handleNewBucket(bucket, files)
+                handleNewBucket(os.path.join(bucket,rawdatadir), rawdatafiles)
             else:
                 logger.debug('Argument "--search-files-required" is specified. Skipping deletion of search files !')
         else:
