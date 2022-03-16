@@ -61,11 +61,13 @@ def main():
     # loop through the buckets and remove the once olther than the given days
     for index in os.scandir(ARCHIVE_DIR):
         index_dir = os.path.join(ARCHIVE_DIR, index.name)
-        if not os.path.isdir(index_dir):
+        if not os.path.isdir(index_dir) or index.name.startswith('.'):
             continue
         c2f.logger.debug('Scanning Index Directory %s for frozen buckets to delete' % index_dir)
         for object in os.scandir(index_dir):
             bucket_name = object.name
+            if not bucket_name.startswith('db_') and not bucket_name.startswith('rb_'):
+                continue
             bucket_dir = os.path.join(index_dir, object.name)
             bucket_stats = os.stat(bucket_dir)
             c2f.logger.debug("bucketname=%s, destdir=%s %s" % (bucket_name, bucket_dir, bucket_stats))
