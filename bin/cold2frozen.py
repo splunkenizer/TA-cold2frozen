@@ -140,6 +140,15 @@ def getBucketSize(bucketPath):
             size += os.path.getsize(filepath)
     return size
 
+def getBucketSizeRaw(bucketPath):
+    size = -1
+    rawSizeFile = os.path.join(bucketPath,".rawSize")
+    if os.path.isfile(rawSizeFile):
+        with open(rawSizeFile, "r") as f:
+            size = f.read().rstrip()
+            logger.debug("Getting raw size for bucket %s" % bucketPath)
+    return int(size)
+
 def getLock(lock_file, timeout=2):
     """ False if lock_file was locked, True otherwise """
     giveUp = datetime.utcnow() + timedelta(seconds=timeout)
@@ -339,6 +348,11 @@ if __name__ == "__main__":
         journal_zst = os.path.join(rawdatadir, 'journal.zst')
         logger.debug("is it gz? %s" % os.path.isfile(journal_gz))
         logger.debug("is it zst? %s" % os.path.isfile(journal_zst))
+
+        # Bucket raw size in bytes
+        bucket_size_raw = getBucketSizeRaw(bucket)
+        if bucket_size_raw >= 0:
+            logFields.add('bucketsize_raw_b', bucket_size_raw)
 
         # Bucket size in bytes        
         bucket_size_full = getBucketSize(bucket)
