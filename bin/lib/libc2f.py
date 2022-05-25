@@ -1,6 +1,9 @@
-import os, sys
-import logging, logging.handlers
-import splunk
+import sys, os, gzip, shutil, subprocess
+import socket
+import time
+from datetime import datetime, timedelta
+import logging
+logger = logging.getLogger('splunk.cold2frozen')
 
 def verify_splunk_home():
     # Verify SPLUNK_HOME environment variable is available, the script is expected to be launched by Splunk which
@@ -11,70 +14,155 @@ def verify_splunk_home():
         print('The environment variable SPLUNK_HOME could not be verified, if you want to run this script '
                     'manually you need to export it before processing')
         sys.exit(1)
-    SPLUNK_HOME = os.environ['SPLUNK_HOME']
 
-class c2f:
-    def __init__(self):
-        self.logger = self.setup_logging()
+def read_config(app_path):
+    import configparser
 
-    def setup_logging(self):
+    # Discover app path
+    # app name
+    APP = os.path.basename(app_path)
+    logger.debug('Appname: %s' % APP)
+    CONFIG_FILE = "cold2frozen.conf"
 
-        ### Logging examples
-        # logger.debug('debug message')
-        # logger.info('info message')
-        # logger.warning('warn message')
-        # logger.error('error message')
-        # logger.critical('critical message')
+    # Get config
+    config = configparser.RawConfigParser()
+    default_config_inifile = os.path.join(app_path, "default", CONFIG_FILE)
+    config_inifile = os.path.join(app_path, "local", CONFIG_FILE)
 
-        # INSTANCE_NAME = os.path.basename(__file__).split(".")[0].lower()
-        INSTANCE_NAME = 'cold2frozen'
-        logger = logging.getLogger('splunk.%s' % INSTANCE_NAME)
-        SPLUNK_HOME = os.environ['SPLUNK_HOME']
-        LOGGING_DEFAULT_CONFIG_FILE = os.path.join(SPLUNK_HOME, 'etc', 'log.cfg')
-        LOGGING_LOCAL_CONFIG_FILE = os.path.join(SPLUNK_HOME, 'etc', 'log-local.cfg')
-        LOGGING_STANZA_NAME = 'python'
-        LOGGING_FILE_NAME = "%s.log" % INSTANCE_NAME
-        BASE_LOG_PATH = os.path.join('var', 'log', 'splunk')
-        splunk_log_handler = logging.handlers.RotatingFileHandler(os.path.join(SPLUNK_HOME, BASE_LOG_PATH, LOGGING_FILE_NAME), mode='a')
-        # Use the same format as splunkd.log
-        LOGGING_FORMAT = logging.Formatter("%(asctime)s %(levelname)-s  %(module)s - %(message)s", "%m-%d-%Y %H:%M:%S.%03d %z")
-        splunk_log_handler.setFormatter(LOGGING_FORMAT)
-        logger.addHandler(splunk_log_handler)
-        splunk.setupSplunkLogger(logger, LOGGING_DEFAULT_CONFIG_FILE, LOGGING_LOCAL_CONFIG_FILE, LOGGING_STANZA_NAME)
-        return logger
+    # First read default config
+    logger.debug('Reading config file: %s' % default_config_inifile)
+    config.read(default_config_inifile)
 
-    def read_config(self, app_path):
-        import configparser
+    # Get default allowed custom values
+    ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
 
-        # Discover app path
-        # app name
-        APP = os.path.basename(app_path)
-        self.logger.debug('Appname: %s' % APP)
-        CONFIG_FILE = "cold2frozen.conf"
+    # Check config exists
+    if not os.path.isfile(config_inifile):
+        msg = 'Please configure your setting by creating and configuring %s' % (config_inifile)
+        logger.error(msg)
+        sys.exit(msg)    
 
-        # Get config
-        config = configparser.RawConfigParser()
-        default_config_inifile = os.path.join(app_path, "default", CONFIG_FILE)
-        config_inifile = os.path.join(app_path, "local", CONFIG_FILE)
+    # Then read local config
+    logger.debug('Reading config file: %s' % config_inifile)
+    config.read(config_inifile)
 
-        # First read default config
-        self.logger.debug('Reading config file: %s' % default_config_inifile)
-        config.read(default_config_inifile)
+    return config
 
-        # Get default allowed custom values
-        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
+def getHostName():
+    # Get the local hostname from the networking stack and split of the domainname if it exists
+    localHostname = socket.gethostname().split(".")[0]
+    return localHostname
 
-        # Check config exists
-        if not os.path.isfile(config_inifile):
-            msg = 'Please configure your setting by creating and configuring %s' % (config_inifile)
-            self.logger.error(msg)
-            sys.exit(msg)    
+def getBucketSize(bucketPath):
+    size = 0
+    for path, dirs, files in os.walk(bucketPath):
+        for file in files:
+            filepath = os.path.join(path, file)
+            logger.debug("Getting size for file %s" % filepath)
+            size += os.path.getsize(filepath)
+    return size
 
-        # Then read local config
-        self.logger.debug('Reading config file: %s' % config_inifile)
-        config.read(config_inifile)
+def getBucketSizeTarget(storage, bucketPath):
+    size = storage.bucket_size(bucketPath)
+    return size
 
-        return config
+def getBucketSizeRaw(bucketPath):
+    size = -1
+    rawSizeFile = os.path.join(bucketPath,".rawSize")
+    if os.path.isfile(rawSizeFile):
+        with open(rawSizeFile, "r") as f:
+            size = f.read().rstrip()
+            logger.debug("Getting raw size for bucket %s" % bucketPath)
+    return int(size)
+
+def bucketDir(storage, bucketPath):
+    full_bucket_path = storage.bucket_dir(bucketPath)
+    return full_bucket_path
+
+def getLock(storage, lock_file, timeout=2):
+    """ False if lock_file was locked, True otherwise """
+    giveUp = datetime.utcnow() + timedelta(seconds=timeout)
+    while datetime.utcnow() < giveUp:
+        if not os.path.isfile(lock_file):
+            if storage.write_lock_file(lock_file, getHostName()):
+                return True
+        else:
+            time.sleep(1)
+    lock_host = storage.read_lock_file(lock_file)
+    logger.debug("Lock aquire timed out for lockfile (lockhost: %s) %s" % (lock_host,lock_file))
+    lock_file_age = os.path.getmtime(lock_file)
+    max_age = 3600 # 1h
+    if time.time() - lock_file_age > max_age:
+        msg = 'Found a very old (>%s secs) lockfile from host %s: %s' % (max_age,lock_host,lock_file)
+        logger.error(msg)
+        sys.exit(msg)        
+    return False
+
+def releaseLock(storage, lock_file):
+    storage.remove_lock_file(lock_file)
+
+# Always release lock on exit
+def exitCleanup(storage, lock_file):
+    releaseLock(storage, lock_file)
+
+# For new style buckets (v4.2+), we can remove all files except for the rawdata.
+# We can later rebuild all metadata and tsidx files with "splunk rebuild"
+def handleNewBucket(base, files):
+    logger.debug('Cleanup bucket=%s, type=normal' % base)
+    # the only non file is the rawdata folder, which we want to archive
+    for f in files:
+        full = os.path.join(base, f)
+        if os.path.isfile(full) and not os.path.basename(f).startswith('journal.'):
+            logger.debug('Removing file %s' % full)
+            os.remove(full)
+
+
+# For buckets created before 4.2, simply gzip the tsidx files
+# To thaw these buckets, be sure to first unzip the tsidx files
+def handleOldBucket(base, files):
+    logger.debug('Cleanup bucket=%s, type=old-style' % base)
+    for f in files:
+        full = os.path.join(base, f)
+        if os.path.isfile(full) and (f.endswith('.tsidx') or f.endswith('.data')):
+            fin = open(full, 'rb')
+            fout = gzip.open(full + '.gz', 'wb')
+            fout.writelines(fin)
+            fout.close()
+            fin.close()
+            logger.debug('Removing file %s' % full)
+            os.remove(full)
+
+
+# This function is not called, but serves as an example of how to do
+# the previous "flatfile" style export. This method is still not
+# recommended as it is resource intensive
+def handleOldFlatfileExport(base, files):
+    command = ['exporttool', base, os.path.join(base, 'index.export'), 'meta::all']
+    retcode = subprocess.call(command)
+    if retcode != 0:
+        sys.exit('exporttool failed with return code: ' + str(retcode))
+
+    for f in files:
+        full = os.path.join(base, f)
+        if os.path.isfile(full):
+            os.remove(full)
+        elif os.path.isdir(full):
+            shutil.rmtree(full)
+        else:
+            print('Warning: found irregular bucket file: ' + full)
+
+# Create index in storage location
+def createIndex(storage, indexname):
+    storage.create_index_dir(indexname)
+
+def bucketExists(storage, bucket_dir):
+    if storage.bucket_exists(bucket_dir):
+        return True
+    else:
+        return False
+
+def copyBucket(storage, bucket, destdir):
+    storage.bucket_copy(bucket, destdir)    
 
 class logDict(dict):
     # __init__ function 
