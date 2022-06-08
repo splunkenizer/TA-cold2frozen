@@ -17,6 +17,7 @@
 
 from lib import libc2f
 from lib import libdir
+from lib import libs3
 import sys, os
 import re
 import logging
@@ -31,13 +32,13 @@ SPLUNK_HOME = os.environ['SPLUNK_HOME']
 from lib import liblogger
 logger = liblogger.setup_logging('splunk.cold2frozen')
 
+# To enable debugging
+#logger.setLevel(logging.DEBUG)
+
 def main():
 
     # Define the App Path
     app_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-    #TODO: Remove for prod
-    logger.setLevel(logging.DEBUG)
 
     logger.debug('Starting main()')
 
@@ -63,6 +64,16 @@ def main():
     if ARCHIVE_TYPE == "dir":
         ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
         storage = libdir.c2fDir(ARCHIVE_DIR)
+    elif ARCHIVE_TYPE == "s3":
+        S3_BUCKET = config.get("cold2frozen", "S3_BUCKET")
+        ACCESS_KEY = config.get("cold2frozen", "ACCESS_KEY")
+        SECRET_KEY = config.get("cold2frozen", "SECRET_KEY")
+        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
+        storage = libs3.c2fS3(ACCESS_KEY, SECRET_KEY, S3_BUCKET, ARCHIVE_DIR)
+    else:
+        msg = 'Given ARCHIVE_TYPE=%s is not supported' % ARCHIVE_TYPE
+        logger.error(msg)
+        sys.exit(msg)
 
     logFields.add('status', None)
 
