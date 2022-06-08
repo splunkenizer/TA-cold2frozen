@@ -83,14 +83,14 @@ def getLock(storage, lock_file, timeout=2):
     """ False if lock_file was locked, True otherwise """
     giveUp = datetime.utcnow() + timedelta(seconds=timeout)
     while datetime.utcnow() < giveUp:
-        if not os.path.isfile(lock_file):
+        if not storage.check_lock_file(lock_file):
             if storage.write_lock_file(lock_file, getHostName()):
                 return True
         else:
             time.sleep(1)
     lock_host = storage.read_lock_file(lock_file)
     logger.debug("Lock aquire timed out for lockfile (lockhost: %s) %s" % (lock_host,lock_file))
-    lock_file_age = os.path.getmtime(lock_file)
+    lock_file_age = storage.lock_file_age(lock_file)
     max_age = 3600 # 1h
     if time.time() - lock_file_age > max_age:
         msg = 'Found a very old (>%s secs) lockfile from host %s: %s' % (max_age,lock_host,lock_file)

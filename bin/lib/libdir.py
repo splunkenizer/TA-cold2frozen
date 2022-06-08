@@ -38,6 +38,16 @@ class c2fDir:
             logger.debug("Creating index directory %s" % indexname)
             os.mkdir(indexdir)
 
+    def check_lock_file(self, lock_file):
+        if os.path.isfile(lock_file):
+            return True
+        else:
+            return False
+
+    def lock_file_age(self, lock_file):
+        lock_age = os.path.getmtime(lock_file)
+        return lock_age
+
     def write_lock_file(self, lock_file, hostname):
         full_lock_file = os.path.join(self._archive_dir, lock_file)
         with open(full_lock_file, 'w') as file:
@@ -49,11 +59,6 @@ class c2fDir:
         with open(lock_file, "r") as f:
             lock_host = f.read().rstrip()
         return lock_host
-
-    def remove_lock_file(self, lock_file):
-        if os.path.isfile(lock_file):
-            os.remove(lock_file)
-            logger.debug("Removed lockfile %s" % lock_file)
 
     def remove_lock_file(self, lock_file):
         if os.path.isfile(lock_file):
