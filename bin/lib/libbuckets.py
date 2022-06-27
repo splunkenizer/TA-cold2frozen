@@ -17,7 +17,7 @@ class Bucket:
             self.__peerguid = self.__info[4]
 
     def __str__(self) -> str:
-        return ("Bucket Name: " + self.__name + " prefix: " + self.__prefix + " start: " + str(datetime.fromtimestamp(self.__start)) + " end: " + str(datetime.fromtimestamp(self.__end)) + " id: " + str(self.__id) + " peerguid: " + self.__peerguid)
+        return ("Bucket Name: " + self.__name + ", prefix: " + self.__prefix + ", start: " + str(datetime.fromtimestamp(self.__start)) + ", end: " + str(datetime.fromtimestamp(self.__end)) + ", id: " + str(self.__id) + ", peerguid: " + self.__peerguid)
 
     def __repr__(self) -> str:
         return self.__name
