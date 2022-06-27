@@ -69,7 +69,7 @@ class c2fS3:
         """Returns T/F whether the directory exists."""
         s3_path = os.path.join(s3_path.strip('/'), '')
         logger.debug("Checking path s3://%s/%s" % (self._s3_bucket_name, s3_path))
-        objects = list(self._s3_bucket.objects.filter(Prefix=s3_path, MaxKeys=1))
+        objects = list(self._s3_bucket.objects.filter(Prefix=s3_path, MaxKeys=1, limit=1))
         return len(objects) >= 1
 
     def _is_valid_archive_dir(self, s3_path: str) -> bool:
