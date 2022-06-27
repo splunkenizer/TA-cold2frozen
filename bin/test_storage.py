@@ -10,7 +10,7 @@ import sys, os
 import logging
 
 # Verify SPLUNK_HOME
-libc2f.verify_splunk_home()
+libc2f.verifySplunkHome()
 SPLUNK_HOME = os.environ['SPLUNK_HOME']
 
 # Create Logger
@@ -39,24 +39,10 @@ def main():
         logger.error(msg)
         sys.exit(msg)
 
-    # Create logFields Object
-    logFields = libc2f.logDict()
-
     # Read in config file
-    config = libc2f.read_config(app_path)
-    ARCHIVE_TYPE = config.get("cold2frozen", "ARCHIVE_TYPE")
-
-    if ARCHIVE_TYPE == "dir":
-        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
-        storage = libdir.c2fDir(ARCHIVE_DIR)
-
-    if ARCHIVE_TYPE == "s3":
-        S3_BUCKET = config.get("cold2frozen", "S3_BUCKET")
-        ACCESS_KEY = config.get("cold2frozen", "ACCESS_KEY")
-        SECRET_KEY = config.get("cold2frozen", "SECRET_KEY")
-        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
-        storage = libs3.c2fS3(ACCESS_KEY, SECRET_KEY, S3_BUCKET, ARCHIVE_DIR)
-
+    config = libc2f.readConfig(app_path)
+    # Get the storage handler
+    storage = libc2f.connStorage(config)
 
     # Create index dir
     indexname = "testindex"
