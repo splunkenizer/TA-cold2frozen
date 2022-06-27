@@ -70,6 +70,7 @@ class c2fS3:
         s3_path = os.path.join(s3_path.strip('/'), '')
         logger.debug("Checking path s3://%s/%s" % (self._s3_bucket_name, s3_path))
         objects = list(self._s3_bucket.objects.filter(Prefix=s3_path, MaxKeys=1, limit=1))
+        logger.debug("Checking path s3://%s/%s - done" % (self._s3_bucket_name, s3_path))
         return len(objects) >= 1
 
     def _is_valid_archive_dir(self, s3_path: str) -> bool:
@@ -84,8 +85,18 @@ class c2fS3:
         full_path = os.path.join(self._archive_dir, path).strip('/')
         return full_path
 
+    def index_exists(self, indexname: str) -> bool:
+        indexdir = self._full_path(indexname)
+        logger.debug("Checking for index directory %s" % indexdir)
+        if self._is_dir(indexdir):
+            return True
+        else:
+            return False
+
+    #TODO: replace code to include index_exists function
     def create_index_dir(self, indexname: str) -> None:
         indexdir = self._full_path(indexname)
+        logger.debug("Checking for index directory %s" % indexdir)
         if not self._is_dir(indexdir):
             logger.debug("Creating index directory %s" % indexdir)
             self._s3_client.put_object(Bucket=self._s3_bucket_name, Key=(indexdir+'/'))
@@ -162,3 +173,32 @@ class c2fS3:
             msg = 'Failed to copy bucket %s to destination %s' % (bucket, full_bucket_dir)
             logger.error(msg)
             sys.exit(msg)
+
+    def list_buckets(self, index: str):
+        full_bucket_dir = self._full_path(index) + str('/')
+        logger.debug("Listing buckets for path s3://%s/%s" % (self._s3_bucket_name, full_bucket_dir))
+        buckets = list(self._s3_bucket.objects.filter(Prefix=full_bucket_dir))
+        logger.debug("Listing buckets for path s3://%s/%s - done" % (self._s3_bucket_name, full_bucket_dir))
+        bucket_list = []
+        for bucket in buckets:
+            bucket_name = os.path.relpath(bucket.key, full_bucket_dir).split('/', 1)[0]
+            if (bucket_name.startswith('db') or bucket_name.startswith('rb')) and not bucket_name in bucket_list:
+                bucket_list.append(bucket_name)
+        return bucket_list
+
+    def restore_bucket(self, index: str, bucket_name: str, destdir: str):
+        # Get Bucket https://www.stackvidhya.com/download-files-from-s3-using-boto3/
+        full_bucket_dir = self._full_path(os.path.join(index,bucket_name))
+        msg = "Restoring bucket %s" % full_bucket_dir
+        print(msg)
+        objects = self._s3_bucket.objects.filter(Prefix=full_bucket_dir)
+        for object in objects:
+            # Create sub directories for the objects file
+            path, filename = os.path.split(object.key)
+            object_dir = os.path.join(destdir,path)
+            if not os.path.isdir(object_dir):
+                os.makedirs(object_dir)
+            
+            # Download the file and put it into the subdirectory
+            #TODO: do not restore the whole path in the destdir, bucket should be ok
+            self._s3_client.download_file(self._s3_bucket_name, object.key, os.path.join(destdir,object.key))
