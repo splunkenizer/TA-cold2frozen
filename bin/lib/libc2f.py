@@ -171,7 +171,12 @@ def handleOldFlatfileExport(base, files):
         else:
             print('Warning: found irregular bucket file: ' + full)
 
-# Create index in storage location
+def indexExists(storage, indexname):
+    if storage.index_exists(indexname):
+        return True
+    else:
+        return False
+
 def createIndex(storage, indexname):
     storage.create_index_dir(indexname)
 
