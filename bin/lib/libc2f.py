@@ -1,3 +1,5 @@
+from lib import libdir
+from lib import libs3
 import sys, os, gzip, shutil, subprocess
 import socket
 import time
@@ -5,7 +7,7 @@ from datetime import datetime, timedelta
 import logging
 logger = logging.getLogger('splunk.cold2frozen')
 
-def verify_splunk_home():
+def verifySplunkHome():
     # Verify SPLUNK_HOME environment variable is available, the script is expected to be launched by Splunk which
     #  will set this for debugging or manual run, please set this variable manually
     try:
@@ -15,7 +17,7 @@ def verify_splunk_home():
                     'manually you need to export it before processing')
         sys.exit(1)
 
-def read_config(app_path):
+def readConfig(app_path):
     import configparser
 
     # Discover app path
@@ -47,6 +49,24 @@ def read_config(app_path):
     config.read(config_inifile)
 
     return config
+
+def connStorage(config):
+    ARCHIVE_TYPE = config.get("cold2frozen", "ARCHIVE_TYPE")
+    if ARCHIVE_TYPE == "dir":
+        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
+        storage = libdir.c2fDir(ARCHIVE_DIR)
+    elif ARCHIVE_TYPE == "s3":
+        S3_BUCKET = config.get("cold2frozen", "S3_BUCKET")
+        ACCESS_KEY = config.get("cold2frozen", "ACCESS_KEY")
+        SECRET_KEY = config.get("cold2frozen", "SECRET_KEY")
+        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
+        storage = libs3.c2fS3(ACCESS_KEY, SECRET_KEY, S3_BUCKET, ARCHIVE_DIR)
+    else:
+        msg = 'Given ARCHIVE_TYPE=%s is not supported' % ARCHIVE_TYPE
+        logger.error(msg)
+        sys.exit(msg)
+    
+    return storage
 
 def getHostName():
     # Get the local hostname from the networking stack and split of the domainname if it exists
@@ -163,6 +183,12 @@ def bucketExists(storage, bucket_dir):
 
 def copyBucket(storage, bucket, destdir):
     storage.bucket_copy(bucket, destdir)    
+
+def listBuckets(storage, index):
+    return storage.list_buckets(index)   
+
+def restoreBucket(storage, index, bucket_name, destdir):
+    storage.restore_bucket(index,bucket_name,destdir)
 
 class logDict(dict):
     # __init__ function 

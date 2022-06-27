@@ -9,7 +9,7 @@ import logging
 
 def main():
 
-    libc2f.verify_splunk_home()
+    libc2f.verifySplunkHome()
 
     # Create Handler
     c2f = libc2f.c2f()
@@ -43,7 +43,7 @@ def main():
     check_date = datetime.datetime.strftime(check_tstamp, "%d.%m.%Y %H:%M:%S")
 
     # Read in config file
-    config = c2f.read_config(app_path)
+    config = c2f.readConfig(app_path)
     ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
 
     # Check directory exists

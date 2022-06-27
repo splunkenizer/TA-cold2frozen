@@ -26,7 +26,7 @@ def parse_output(c2f,output):
 
 def main():
 
-    libc2f.verify_splunk_home()
+    libc2f.verifySplunkHome()
 
     # Create Handler
     c2f = libc2f.c2f()
