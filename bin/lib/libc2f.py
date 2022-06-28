@@ -35,9 +35,6 @@ def readConfig(app_path):
     logger.debug('Reading config file: %s' % default_config_inifile)
     config.read(default_config_inifile)
 
-    # Get default allowed custom values
-    ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
-
     # Check config exists
     if not os.path.isfile(config_inifile):
         msg = 'Please configure your setting by creating and configuring %s' % (config_inifile)
@@ -51,16 +48,20 @@ def readConfig(app_path):
     return config
 
 def connStorage(config):
-    ARCHIVE_TYPE = config.get("cold2frozen", "ARCHIVE_TYPE")
+    CONFIG_SECTION = "cold2frozen"
+    ARCHIVE_TYPE = config.get(CONFIG_SECTION, "ARCHIVE_TYPE")
     if ARCHIVE_TYPE == "dir":
-        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
+        ARCHIVE_DIR = config.get(CONFIG_SECTION, "ARCHIVE_DIR")
         storage = libdir.c2fDir(ARCHIVE_DIR)
     elif ARCHIVE_TYPE == "s3":
-        S3_BUCKET = config.get("cold2frozen", "S3_BUCKET")
-        ACCESS_KEY = config.get("cold2frozen", "ACCESS_KEY")
-        SECRET_KEY = config.get("cold2frozen", "SECRET_KEY")
-        ARCHIVE_DIR = config.get("cold2frozen", "ARCHIVE_DIR")
-        storage = libs3.c2fS3(ACCESS_KEY, SECRET_KEY, S3_BUCKET, ARCHIVE_DIR)
+        kwargs = {}
+        kwargs['s3_bucket'] = config.get(CONFIG_SECTION, "S3_BUCKET")
+        if "s3_endpoint" in dict(config.items(CONFIG_SECTION)):
+            kwargs['s3_endpoint'] = config.get(CONFIG_SECTION, "S3_ENDPOINT")
+        kwargs['access_key'] = config.get(CONFIG_SECTION, "ACCESS_KEY")
+        kwargs['secret_key'] = config.get(CONFIG_SECTION, "SECRET_KEY")
+        kwargs['archive_dir'] = config.get(CONFIG_SECTION, "ARCHIVE_DIR")
+        storage = libs3.c2fS3(**kwargs)
     else:
         msg = 'Given ARCHIVE_TYPE=%s is not supported' % ARCHIVE_TYPE
         logger.error(msg)

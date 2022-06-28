@@ -8,16 +8,17 @@ logger = logging.getLogger('splunk.cold2frozen')
 
 class c2fS3:
 
-    def __init__(self, access_key: str, secret_key: str, s3_bucket: str, archive_dir: str):
+    def __init__(self, access_key: str, secret_key: str, s3_bucket: str, archive_dir: str, **kwargs):
         self._type = 's3'
         # To connect to on-premise S3 check this out:
         # https://stackoverflow.com/questions/60709034/connect-to-s3-compatible-storage-with-boto3
         self._access_key = access_key
         self._secret_key = secret_key
+        self._s3_endpoint = kwargs.get('s3_endpoint', None)
         self._s3_bucket_name = s3_bucket
-        self._s3_resource = self._resource_s3(self._access_key, self._secret_key)
+        self._s3_resource = self._resource_s3(access_key=self._access_key, secret_key=self._secret_key, s3_endpoint=self._s3_endpoint)
         self._s3_bucket = self._s3_resource.Bucket(self._s3_bucket_name)
-        self._s3_client = self._client_s3(self._access_key, self._secret_key)
+        self._s3_client = self._client_s3(access_key=self._access_key, secret_key=self._secret_key, s3_endpoint=self._s3_endpoint)
         self._is_valid_s3bucket(self._s3_bucket_name)
         self._is_writable_s3bucket(self._s3_bucket_name)
         if self._is_valid_archive_dir(archive_dir):
@@ -35,14 +36,14 @@ class c2fS3:
     def archive_dir(self):
         return self._archive_dir
 
-    def _resource_s3(self, access_key, secret_key: str):
+    def _resource_s3(self, access_key, secret_key: str, s3_endpoint: str):
         s3_resource = boto3.resource('s3', aws_access_key_id=access_key,
-                        aws_secret_access_key=secret_key)
+                        aws_secret_access_key=secret_key, endpoint_url=s3_endpoint)
         return s3_resource
 
-    def _client_s3(self, access_key, secret_key: str):
+    def _client_s3(self, access_key, secret_key: str, s3_endpoint: str):
         s3_client = boto3.client('s3', aws_access_key_id=access_key,
-                        aws_secret_access_key=secret_key)
+                        aws_secret_access_key=secret_key, endpoint_url=s3_endpoint)
         return s3_client
 
     def _is_valid_s3bucket(self, s3_bucket_name: str) -> None:
