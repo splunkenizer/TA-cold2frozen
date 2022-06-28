@@ -8,7 +8,18 @@ import subprocess
 import re
 import logging
 
-def parse_output(c2f,output):
+# Verify SPLUNK_HOME
+libc2f.verifySplunkHome()
+SPLUNK_HOME = os.environ['SPLUNK_HOME']
+
+# Create Logger
+from lib import liblogger
+logger = liblogger.setup_logging('splunk.cold2frozen')
+
+#TODO: Remove for prod
+#logger.setLevel(logging.DEBUG)
+
+def parse_output(output):
     output = output.split("\n")
     for line in output:
         for level in [r'INFO',r'WARN',r'ERROR']:
@@ -16,26 +27,17 @@ def parse_output(c2f,output):
             if p.findall(line):
                 msg = line
                 if level == 'INFO':
-                    c2f.logger.info(msg)
+                    logger.info(msg)
                 if level == 'WARN':
-                    c2f.logger.warning(msg)
+                    logger.warning(msg)
                     print(msg)
                 if level == 'ERROR':
-                    c2f.logger.error(msg)
+                    logger.error(msg)
                     print(msg, file=sys.stderr)
 
 def main():
 
-    libc2f.verifySplunkHome()
-
-    # Create Handler
-    c2f = libc2f.c2f()
-
-    # Define the App Path
-    app_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-    #TODO: Remove for prod
-    #c2f.logger.setLevel(logging.DEBUG)
+    logger.debug('Starting main()')
 
     # Argument Parser
     parser = argparse.ArgumentParser(description='Restore Frozen Buckets')
@@ -58,7 +60,7 @@ def main():
     # Check permissions of the directory
     if not os.access(THAWED_DIR, os.W_OK):
         msg = 'Cannot write to directory %s' % THAWED_DIR
-        c2f.logger.error(msg)
+        logger.error(msg)
         sys.exit(msg)
 
     buckets = libbuckets.BucketIndex(index=INDEX_NAME)
@@ -79,7 +81,7 @@ def main():
         if process.returncode != 0:
             output = process.stderr.decode('utf-8')
             print('ERROR')
-            parse_output(c2f,output)
+            parse_output(output)
             sys.exit(process.returncode)
         else:
             print('done')
@@ -87,7 +89,7 @@ def main():
         # Parse the output
         # Unfortunately, the command outputs all to stderr
         output = process.stderr.decode('utf-8')
-        parse_output(c2f,output)
+        parse_output(output)
 
 if __name__ == "__main__":
     main()
