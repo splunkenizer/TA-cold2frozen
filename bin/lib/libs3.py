@@ -96,8 +96,7 @@ class c2fS3:
     #TODO: replace code to include index_exists function
     def create_index_dir(self, indexname: str) -> None:
         indexdir = self._full_path(indexname)
-        logger.debug("Checking for index directory %s" % indexdir)
-        if not self._is_dir(indexdir):
+        if not self.index_exists(indexname):
             logger.debug("Creating index directory %s" % indexdir)
             self._s3_client.put_object(Bucket=self._s3_bucket_name, Key=(indexdir+'/'))
 
@@ -187,18 +186,14 @@ class c2fS3:
         return bucket_list
 
     def restore_bucket(self, index: str, bucket_name: str, destdir: str):
-        # Get Bucket https://www.stackvidhya.com/download-files-from-s3-using-boto3/
         full_bucket_dir = self._full_path(os.path.join(index,bucket_name))
-        msg = "Restoring bucket %s" % full_bucket_dir
-        print(msg)
         objects = self._s3_bucket.objects.filter(Prefix=full_bucket_dir)
         for object in objects:
-            # Create sub directories for the objects file
-            path, filename = os.path.split(object.key)
+            object_partdir = object.key.split(os.path.join(self._archive_dir,index), 1)[1].split('/', 1)[1]
+            path, filename = os.path.split(object_partdir)
+            
             object_dir = os.path.join(destdir,path)
             if not os.path.isdir(object_dir):
                 os.makedirs(object_dir)
             
-            # Download the file and put it into the subdirectory
-            #TODO: do not restore the whole path in the destdir, bucket should be ok
-            self._s3_client.download_file(self._s3_bucket_name, object.key, os.path.join(destdir,object.key))
+            self._s3_client.download_file(self._s3_bucket_name, object.key, os.path.join(destdir,object_partdir))
