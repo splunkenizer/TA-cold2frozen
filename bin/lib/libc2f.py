@@ -59,7 +59,12 @@ def connStorage(config):
         if "s3_endpoint" in dict(config.items(CONFIG_SECTION)):
             kwargs['s3_endpoint'] = config.get(CONFIG_SECTION, "S3_ENDPOINT")
         if "s3_verify_cert" in dict(config.items(CONFIG_SECTION)):
-            kwargs['s3_verify_cert'] = config.get(CONFIG_SECTION, "S3_VERIFY_CERT")
+            s3_verify_cert = config.get(CONFIG_SECTION, "S3_VERIFY_CERT")
+            if s3_verify_cert != "True" and s3_verify_cert != "False":
+                msg = "Value '%s' for S3_VERIFY_CERT not supported, must be 'True' or 'False'" % s3_verify_cert
+                logger.error(msg)
+                raise Exception(msg)
+            kwargs['s3_verify_cert'] = eval(s3_verify_cert)
         kwargs['access_key'] = config.get(CONFIG_SECTION, "ACCESS_KEY")
         kwargs['secret_key'] = config.get(CONFIG_SECTION, "SECRET_KEY")
         kwargs['archive_dir'] = config.get(CONFIG_SECTION, "ARCHIVE_DIR")
@@ -191,6 +196,9 @@ def bucketExists(storage, bucket_dir):
 
 def copyBucket(storage, bucket, destdir):
     storage.bucket_copy(bucket, destdir)    
+
+def listIndexes(storage):
+    return storage.list_indexes() 
 
 def listBuckets(storage, index):
     return storage.list_buckets(index)   
