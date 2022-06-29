@@ -94,7 +94,6 @@ class c2fS3:
         else:
             return False
 
-    #TODO: replace code to include index_exists function
     def create_index_dir(self, indexname: str) -> None:
         indexdir = self._full_path(indexname)
         if not self.index_exists(indexname):
