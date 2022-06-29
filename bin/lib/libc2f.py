@@ -58,6 +58,8 @@ def connStorage(config):
         kwargs['s3_bucket'] = config.get(CONFIG_SECTION, "S3_BUCKET")
         if "s3_endpoint" in dict(config.items(CONFIG_SECTION)):
             kwargs['s3_endpoint'] = config.get(CONFIG_SECTION, "S3_ENDPOINT")
+        if "s3_verify_cert" in dict(config.items(CONFIG_SECTION)):
+            kwargs['s3_verify_cert'] = config.get(CONFIG_SECTION, "S3_VERIFY_CERT")
         kwargs['access_key'] = config.get(CONFIG_SECTION, "ACCESS_KEY")
         kwargs['secret_key'] = config.get(CONFIG_SECTION, "SECRET_KEY")
         kwargs['archive_dir'] = config.get(CONFIG_SECTION, "ARCHIVE_DIR")
