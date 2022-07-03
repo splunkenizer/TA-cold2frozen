@@ -32,45 +32,56 @@ class c2fDir:
             logger.error(msg)
             raise Exception(msg)
 
+    def _full_path(self, path: str) -> None:
+        full_path = os.path.join(self._archive_dir, path)
+        return full_path
+
     def create_index_dir(self, indexname):
-        indexdir = os.path.join(self._archive_dir, indexname)
+        indexdir = self._full_path(indexname)
         if not os.path.isdir(indexdir):
             logger.debug("Creating index directory %s" % indexname)
             os.mkdir(indexdir)
 
     def check_lock_file(self, lock_file):
-        if os.path.isfile(lock_file):
+        full_lock_file = self._full_path(lock_file)
+        logger.debug("Checking for lockfile %s" % full_lock_file)
+        if os.path.isfile(full_lock_file):
+            logger.debug("Found existing lockfile %s" % full_lock_file)
             return True
         else:
+            logger.debug("No lockfile %s" % full_lock_file)
             return False
 
     def lock_file_age(self, lock_file):
-        lock_age = os.path.getmtime(lock_file)
+        full_lock_file = self._full_path(lock_file)
+        lock_age = os.path.getmtime(full_lock_file)
         return lock_age
 
     def write_lock_file(self, lock_file, hostname):
-        full_lock_file = os.path.join(self._archive_dir, lock_file)
+        full_lock_file = self._full_path(lock_file)
         with open(full_lock_file, 'w') as file:
             file.write(hostname)
             logger.debug("Created lockfile %s" % full_lock_file)
             return True
 
     def read_lock_file(self, lock_file):
-        with open(lock_file, "r") as f:
+        full_lock_file = self._full_path(lock_file)
+        with open(full_lock_file, "r") as f:
             lock_host = f.read().rstrip()
         return lock_host
 
     def remove_lock_file(self, lock_file):
-        if os.path.isfile(lock_file):
-            os.remove(lock_file)
-            logger.debug("Removed lockfile %s" % lock_file)
+        full_lock_file = self._full_path(lock_file)
+        if os.path.isfile(full_lock_file):
+            os.remove(full_lock_file)
+            logger.debug("Removed lockfile %s" % full_lock_file)
 
     def bucket_dir(self, bucket_dir):
-        full_bucket_dir = os.path.join(self._archive_dir, bucket_dir)
+        full_bucket_dir = self._full_path(bucket_dir)
         return full_bucket_dir
 
     def bucket_exists(self, bucket_dir):
-        full_bucket_dir = os.path.join(self._archive_dir, bucket_dir)
+        full_bucket_dir = self._full_path(bucket_dir)
         if os.path.isdir(full_bucket_dir):
             return True
         else:
@@ -78,7 +89,7 @@ class c2fDir:
 
     def bucket_size(self, bucketPath):
         size = 0
-        full_bucket_dir = os.path.join(self._archive_dir, bucketPath)
+        full_bucket_dir = self._full_path(bucketPath)
         for path, dirs, files in os.walk(full_bucket_dir):
             for file in files:
                 filepath = os.path.join(path, file)
@@ -87,7 +98,7 @@ class c2fDir:
         return size
 
     def bucket_copy(self, bucket, destdir):
-        full_bucket_dir = os.path.join(self._archive_dir, destdir)
+        full_bucket_dir = self._full_path(destdir)
         try:
             shutil.copytree(bucket, full_bucket_dir)
         except OSError:
