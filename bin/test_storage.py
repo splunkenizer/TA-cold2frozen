@@ -60,7 +60,7 @@ def main():
     libc2f.getLock(storage, lock_file, timeout=10)
 
     # Try to create another lock file
-    libc2f.getLock(storage, lock_file, timeout=10)
+    #libc2f.getLock(storage, lock_file, timeout=10)
 
     # Copy bucket
     libc2f.copyBucket(storage, bucket, destdir)
