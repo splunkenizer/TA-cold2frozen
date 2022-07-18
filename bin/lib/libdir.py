@@ -105,3 +105,35 @@ class c2fDir:
             msg = 'Failed to copy bucket %s to destination %s' % (bucket, full_bucket_dir)
             logger.error(msg)
             sys.exit(msg)
+
+    def list_indexes(self): 
+        logger.debug("Listing indexes for path %s" % (self._archive_dir))
+        index_list = []
+        for index in os.scandir(self._archive_dir):
+            index_dir = os.path.join(self._archive_dir, index.name)
+            if not os.path.isdir(index_dir) or index.name.startswith('.'):
+                continue
+            index_list.append(os.path.basename(index_dir))
+        return index_list
+
+    def list_buckets(self, index: str):
+        full_index_dir = self._full_path(index)
+        logger.debug("Listing buckets for path %s" % (full_index_dir))
+        bucket_list = []
+        for object in os.scandir(full_index_dir):
+            bucket_name = object.name
+            bucket_dir = os.path.join(full_index_dir, object.name)
+            if bucket_name.startswith('db_') or bucket_name.startswith('rb_'):
+                bucket_list.append(bucket_name)
+                bucket_stats = os.stat(bucket_dir)
+                #logger.debug("bucketname=%s, destdir=%s %s" % (bucket_name, bucket_dir, bucket_stats))
+        return bucket_list
+
+    def remove_bucket(self, index: str, bucket_name: str):
+        full_bucket_dir = self._full_path(os.path.join(index,bucket_name))
+        try:
+            logger.debug("Remove bucket %s" % (full_bucket_dir))
+            shutil.rmtree(full_bucket_dir)
+        except OSError as ex:
+            msg = 'Cannot remove bucket=%s' % full_bucket_dir
+            logger.error(msg)

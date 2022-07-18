@@ -174,18 +174,26 @@ class c2fS3:
             logger.error(msg)
             sys.exit(msg)
 
+    def list_indexes(self): 
+        logger.debug("Listing indexes for path s3://%s/%s" % (self._s3_bucket_name, self._archive_dir))
+        response = self._s3_client.list_objects(Bucket=self._s3_bucket_name, Prefix='frozen/', Delimiter='/')
+        index_list = []
+        for index in response['CommonPrefixes']:
+            index_name = os.path.relpath(index['Prefix'].strip('/'), self._archive_dir).split('/', 1)[0]
+            index_list.append(index_name)
+        return index_list
+
     def list_buckets(self, index: str):
         full_bucket_dir = self._full_path(index) + str('/')
         logger.debug("Listing buckets for path s3://%s/%s" % (self._s3_bucket_name, full_bucket_dir))
         buckets = list(self._s3_bucket.objects.filter(Prefix=full_bucket_dir))
-        logger.debug("Listing buckets for path s3://%s/%s - done" % (self._s3_bucket_name, full_bucket_dir))
         bucket_list = []
         for bucket in buckets:
             bucket_name = os.path.relpath(bucket.key, full_bucket_dir).split('/', 1)[0]
             if (bucket_name.startswith('db') or bucket_name.startswith('rb')) and not bucket_name in bucket_list:
                 bucket_list.append(bucket_name)
         return bucket_list
-
+ 
     def restore_bucket(self, index: str, bucket_name: str, destdir: str):
         full_bucket_dir = self._full_path(os.path.join(index,bucket_name))
         objects = self._s3_bucket.objects.filter(Prefix=full_bucket_dir)
@@ -198,3 +206,10 @@ class c2fS3:
                 os.makedirs(object_dir)
             
             self._s3_client.download_file(self._s3_bucket_name, object.key, os.path.join(destdir,object_partdir))
+
+    def remove_bucket(self, index: str, bucket_name: str):
+        full_bucket_dir = self._full_path(os.path.join(index,bucket_name))
+        objects = self._s3_bucket.objects.filter(Prefix=full_bucket_dir)
+        logger.debug("Remove bucket s3://%s/%s" % (self._s3_bucket_name, full_bucket_dir))
+        for object in objects:
+            self._s3_client.delete_object(Bucket=self._s3_bucket_name, Key=object.key)

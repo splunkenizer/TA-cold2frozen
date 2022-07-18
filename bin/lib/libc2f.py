@@ -206,6 +206,9 @@ def listBuckets(storage, index):
 def restoreBucket(storage, index, bucket_name, destdir):
     storage.restore_bucket(index,bucket_name,destdir)
 
+def removeBucket(storage, index, bucket_name):
+    storage.remove_bucket(index,bucket_name)
+
 class logDict(dict):
     # __init__ function 
     def __init__(self): 

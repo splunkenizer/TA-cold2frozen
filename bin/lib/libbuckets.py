@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 class Bucket:
     def __init__(self, name=None):
@@ -44,7 +44,7 @@ class Bucket:
 
     @property
     def peer(self):
-        return self.__peer
+        return self.__peerguid
 
     @name.setter
     def name(self, name):
@@ -111,5 +111,18 @@ class BucketIndex:
                 #print("Bucket selected:", bucket)
             #else:
                 #print("### Bucket not selected:", bucket)
+
+        return self._filtered_buckets
+
+    def older(self, retention: int):
+        self._filtered_buckets = BucketIndex(index=self.__index, name="olderthan")
+        check_tstamp = datetime.datetime.today() - datetime.timedelta(days=retention)
+        check_date = datetime.datetime.strftime(check_tstamp, "%d.%m.%Y %H:%M:%S")
+        for bucket in self._buckets:
+            # Check if we need this bucket
+            # Bucket end must be older than the retention
+            if datetime.datetime.fromtimestamp(bucket.end) <= check_tstamp:
+                self._filtered_buckets.append(bucket)
+                #print("Bucket selected:", bucket.name)
 
         return self._filtered_buckets
