@@ -176,7 +176,7 @@ class c2fS3:
 
     def list_indexes(self): 
         logger.debug("Listing indexes for path s3://%s/%s" % (self._s3_bucket_name, self._archive_dir))
-        response = self._s3_client.list_objects(Bucket=self._s3_bucket_name, Prefix='frozen/', Delimiter='/')
+        response = self._s3_client.list_objects(Bucket=self._s3_bucket_name, Prefix=self._archive_dir, Delimiter='/')
         index_list = []
         for index in response['CommonPrefixes']:
             index_name = os.path.relpath(index['Prefix'].strip('/'), self._archive_dir).split('/', 1)[0]
