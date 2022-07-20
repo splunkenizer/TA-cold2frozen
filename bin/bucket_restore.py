@@ -35,7 +35,6 @@ def main():
     parser.add_argument('-s','--start', metavar='startdate', dest='startdate', type=str, help='start day: DDMMYYYY', required=True)
     parser.add_argument('-e','--end', metavar='enddate', dest='enddate', type=str, help='end day: DDMMYYYY', required=True)
     parser.add_argument('-t','--target', metavar='targetdir', dest='targetdir', type=str, help='target directory', required=True)
-    parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
 
     args = parser.parse_args()
 

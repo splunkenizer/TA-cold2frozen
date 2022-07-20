@@ -32,7 +32,6 @@ def main():
     parser.add_argument('-d','--days', metavar='days', dest='days', type=str, help='older than days', required=True)
     parser.add_argument('-t','--usectime', action="store_true", help='Filesystem creation date')
     parser.add_argument('-r','--dryrun', action="store_true", help='Do not delete the buckets')
-    parser.add_argument("-v", "--verbose", action="store_true", help='increase output verbosity')
 
     args = parser.parse_args()
 
