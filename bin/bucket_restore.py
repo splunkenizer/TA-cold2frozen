@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# This script is not used right now. It is a preparation of a future restore process to restore buckets from storage
-# like S3.
-
 from lib import libc2f
 from lib import libbuckets
 import os, sys
