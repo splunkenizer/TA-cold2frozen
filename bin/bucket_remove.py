@@ -72,7 +72,6 @@ def main():
         for index in index_list:
             if args.index and index not in args.index[0]:
                 continue
-            index_dir = os.path.join(storage.archive_dir, index)
             logger.debug("Scanning Index %s" % index)
             # Initialize bucket container object
             buckets = libbuckets.BucketIndex(index=index)
