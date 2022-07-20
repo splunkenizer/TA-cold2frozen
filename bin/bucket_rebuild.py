@@ -7,6 +7,8 @@ import argparse
 import subprocess
 import re
 import logging
+import time
+from multiprocessing import Process, Queue
 
 # Verify SPLUNK_HOME
 libc2f.verifySplunkHome()
@@ -16,8 +18,11 @@ SPLUNK_HOME = os.environ['SPLUNK_HOME']
 from lib import liblogger
 logger = liblogger.setup_logging('splunk.cold2frozen')
 
-#TODO: Remove for prod
+# To enable debugging
 #logger.setLevel(logging.DEBUG)
+
+# Create queue
+queue = Queue()
 
 def parse_output(output):
     output = output.split("\n")
@@ -26,30 +31,67 @@ def parse_output(output):
             p = re.compile(level)
             if p.findall(line):
                 msg = line
-                if level == 'INFO':
-                    logger.info(msg)
-                if level == 'WARN':
-                    logger.warning(msg)
-                    print(msg)
+                if level == 'INFO' or level == 'WARN':
+                    return msg
                 if level == 'ERROR':
-                    logger.error(msg)
-                    print(msg, file=sys.stderr)
+                    skip = re.compile(r'IndexConfig - Asked to check if idx= is an index')
+                    if not skip.findall(line):
+                        return msg
+
+def worker(workerid: int, thaweddir: str):
+    logger.debug('Starting worker(), workerid: %s', workerid)
+    global queue
+    while not queue.empty():
+        bucketname = queue.get()
+        rebuild_bucket(workerid, bucketname, thaweddir)
+
+
+def rebuild_bucket(workerid: int, bucketname: str, thaweddir: str):
+    logFields = libc2f.logDict()
+    logFields.add('status', 'rebuilt')
+    logger.debug('Starting rebuild_bucket(), workerid: %s, bucketname: %s' % (workerid, bucketname))
+    logFields.add('bucketname', bucketname)
+    logger.debug("bucketname is %s" % bucketname)
+    destdir = os.path.join(thaweddir, bucketname)
+    logFields.add('destdir', destdir)
+    logger.debug("destdir is %s" % destdir)
+    msg = '%s: START - Rebuilding bucket %s' % (workerid, bucketname)
+    print(msg, flush=True)
+    # Run the rebuild command
+    rebuildstart = time.time() * 1000
+    process = subprocess.run(['splunk', 'rebuild', os.path.join(thaweddir,bucketname)],capture_output=True)
+    rebuildend = time.time() * 1000
+    logFields.add('rebuildtime_ms', round(rebuildend - rebuildstart,3))
+
+    if process.returncode == 0:
+        status = 'SUCCESS'
+        logFields.add('status', 'rebuilt')
+    else:
+        status = 'ERROR'
+        logFields.add('status', 'failed_rebuilt')
+    # Parse the output
+    # Unfortunately, the command outputs all to stderr
+    output = process.stderr.decode('utf-8')
+    outmsg = parse_output(output)
+    msg = '%s: %s - Rebuilding bucket %s\n%s' % (workerid, status, bucketname, outmsg)
+    print(msg, flush=True)
+    if len(outmsg) > 0:
+        logFields.add('output', "'" + outmsg + "'")
+    logger.info(logFields.kvout())
+
 
 def main():
-
     logger.debug('Starting main()')
 
     # Argument Parser
     parser = argparse.ArgumentParser(description='Restore Frozen Buckets')
-    parser.add_argument('-i','--index', metavar='index', dest='index', type=str, help='Target Index Name', required=True)
     parser.add_argument('-t','--thaweddb', metavar='thaweddb', dest='thaweddb', type=str, help='Thaweddb Directory', required=True)
-    parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
+    parser.add_argument('-p','--numprocs', metavar='numprocs', dest='numprocs', type=int, help='Number of processes', required=False, default=1)
 
     args = parser.parse_args()
 
     # Define static vars
     THAWED_DIR = args.thaweddb
-    INDEX_NAME = args.index
 
     # Check directory exists
     if not os.path.isdir(THAWED_DIR):
@@ -63,33 +105,27 @@ def main():
         logger.error(msg)
         sys.exit(msg)
 
-    buckets = libbuckets.BucketIndex(index=INDEX_NAME)
+    buckets = libbuckets.BucketIndex(index='restored')
     for object in os.scandir(THAWED_DIR):
         if not os.path.isdir(object):
             continue
         bucket_name = object.name
         buckets.add(bucket_name)
-
+   
+    # Put all the bucketnames to the queue
     for bucket_obj in buckets:
-        msg = 'Rebuilding bucket %s ... ' % bucket_obj.name
-        print(msg, end = '', flush=True)
+        queue.put(bucket_obj.name)
 
-        # Run the rebuild command
-        process = subprocess.run(['splunk', 'rebuild', os.path.join(THAWED_DIR,bucket_obj.name), INDEX_NAME],capture_output=True)
+    jobs = []
+    for workerid in range(args.numprocs):
+        process = Process(target=worker, args=(workerid,THAWED_DIR))
+        jobs.append(process)
 
-        # Check the exit status
-        if process.returncode != 0:
-            output = process.stderr.decode('utf-8')
-            print('ERROR')
-            parse_output(output)
-            sys.exit(process.returncode)
-        else:
-            print('done')
+    for job in jobs:
+        job.start()
 
-        # Parse the output
-        # Unfortunately, the command outputs all to stderr
-        output = process.stderr.decode('utf-8')
-        parse_output(output)
+    for job in jobs:
+        job.join()
 
 if __name__ == "__main__":
     main()
