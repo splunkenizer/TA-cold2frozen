@@ -57,10 +57,14 @@ def rebuild_bucket(workerid: int, bucketname: str, thaweddir: str):
     logger.debug("destdir is %s" % destdir)
     msg = '%s: START - Rebuilding bucket %s' % (workerid, bucketname)
     print(msg, flush=True)
+    bucket_size_source = libc2f.getBucketSize(os.path.join(thaweddir,bucketname))
+    logFields.add('bucketsize_b', bucket_size_source)
     # Run the rebuild command
     rebuildstart = time.time() * 1000
     process = subprocess.run(['splunk', 'rebuild', os.path.join(thaweddir,bucketname)],capture_output=True)
     rebuildend = time.time() * 1000
+    bucket_size_full = libc2f.getBucketSize(os.path.join(thaweddir,bucketname))
+    logFields.add('bucketsize_full_b', bucket_size_full)
     logFields.add('rebuildtime_ms', round(rebuildend - rebuildstart,3))
 
     if process.returncode == 0:
@@ -75,7 +79,7 @@ def rebuild_bucket(workerid: int, bucketname: str, thaweddir: str):
     outmsg = parse_output(output)
     msg = '%s: %s - Rebuilding bucket %s\n%s' % (workerid, status, bucketname, outmsg)
     print(msg, flush=True)
-    if len(outmsg) > 0:
+    if outmsg and len(outmsg) > 0:
         logFields.add('output', "'" + outmsg + "'")
     logger.info(logFields.kvout())
 
