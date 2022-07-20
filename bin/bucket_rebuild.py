@@ -84,7 +84,7 @@ def main():
     logger.debug('Starting main()')
 
     # Argument Parser
-    parser = argparse.ArgumentParser(description='Restore Frozen Buckets')
+    parser = argparse.ArgumentParser(description='Rebuild Frozen Buckets')
     parser.add_argument('-t','--thaweddb', metavar='thaweddb', dest='thaweddb', type=str, help='Thaweddb Directory', required=True)
     parser.add_argument('-p','--numprocs', metavar='numprocs', dest='numprocs', type=int, help='Number of processes', required=False, default=1)
 
