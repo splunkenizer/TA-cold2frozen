@@ -69,16 +69,18 @@ def main():
         for bucket_name in bucket_list:
             buckets.add(bucket_name)
 
-            logFields.add('indexname', buckets.index)
-            logger.debug("indexname is %s" % buckets.index)
-
-        # Loop through the filtered objects
+        logFields.add('indexname', index)
+        logger.debug("indexname is %s" % index)
+        destdir = libc2f.bucketDir(storage, index)
+        logFields.add('destdir', destdir)
+        logger.debug("destdir is %s" % destdir)
+        # Loop through the buckets
         index_size = 0
         bucket_count = 0
         earliest = 9999999999999
         latest = 0
         for bucket_obj in buckets:
-            bucket_size_source = libc2f.getBucketSizeTarget(storage, os.path.join(buckets.index,bucket_obj.name))
+            bucket_size_source = libc2f.getBucketSizeTarget(storage, os.path.join(index,bucket_obj.name))
             index_size += bucket_size_source
             bucket_count += 1
             if bucket_obj.end > latest:
@@ -101,7 +103,7 @@ def main():
         if args.verbose:
             earliest_date = datetime.datetime.fromtimestamp(earliest).strftime("%d.%m.%Y %H:%M:%S")
             latest_date = datetime.datetime.fromtimestamp(latest).strftime("%d.%m.%Y %H:%M:%S")
-            print('Index: %s, Buckets: %s, Size: %s, Earliest: %s, Latest: %s' % (index, bucket_count, format_bytes(index_size), earliest_date, latest_date))
+            print('Index: %s, Buckets: %s, Size: %s, Earliest: %s, Latest: %s, Destdir: %s' % (index, bucket_count, format_bytes(index_size), earliest_date, latest_date, destdir))
 
 
 if __name__ == "__main__":
