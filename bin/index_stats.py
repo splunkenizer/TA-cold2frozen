@@ -5,6 +5,8 @@ from lib import libbuckets
 import os, sys
 import argparse
 import logging, logging.handlers
+import datetime
+from math import floor, log
 
 # Verify SPLUNK_HOME
 libc2f.verifySplunkHome()
@@ -17,6 +19,10 @@ logger = liblogger.setup_logging('splunk.cold2frozen')
 #TODO: Remove for prod
 #logger.setLevel(logging.DEBUG)
 
+def format_bytes(size):
+  log_num = 0 if size <= 0 else floor(log(size, 1024))
+  return f"{round(size / 1024 ** log_num, 2)} {['B', 'KB', 'MB', 'GB', 'TB'][int(log_num)]}"
+
 def main():
 
     # Define the App Path
@@ -27,7 +33,7 @@ def main():
     # Argument Parser
     parser = argparse.ArgumentParser(description='Logs index statistics')
     parser.add_argument('-i','--index', metavar='index', dest='index', type=str, help='Index(es)', action='append', nargs='*', required=False)
-    parser.add_argument('-v','--verbose', action="store_true", help='Filesystem creation date')
+    parser.add_argument('-v','--verbose', action="store_true", help='Output on CLI also')
 
     args = parser.parse_args()
 
@@ -92,6 +98,10 @@ def main():
         logFields.add('status', 'indexstats')
         logger.debug("status is %s" % 'indexstats')
         logger.info(logFields.kvout())
+        if args.verbose:
+            earliest_date = datetime.datetime.fromtimestamp(earliest).strftime("%d.%m.%Y %H:%M:%S")
+            latest_date = datetime.datetime.fromtimestamp(latest).strftime("%d.%m.%Y %H:%M:%S")
+            print('Index: %s, Buckets: %s, Size: %s, Earliest: %s, Latest: %s' % (index, bucket_count, format_bytes(index_size), earliest_date, latest_date))
 
 
 if __name__ == "__main__":
