@@ -42,10 +42,6 @@ def main():
     # Get the storage handler
     storage = libc2f.connStorage(config)
 
-    if storage.type != 's3':
-        print("ERROR: Bucket statistics storage type %s is not supported" % storage.type)
-        sys.exit(1)
-
     index_list = libc2f.listIndexes(storage)
 
     # Verify index arguments
@@ -92,10 +88,13 @@ def main():
         logger.debug("indexsize_b is %s" % index_size)
         logFields.add('bucketcount', bucket_count)
         logger.debug("bucketcount is %s" % bucket_count)
-        logFields.add('earliest', earliest)
-        logger.debug("earliest is %s" % earliest)
-        logFields.add('latest', latest)
-        logger.debug("latest is %s" % latest)
+        if bucket_count > 0:
+            logFields.add('earliest', earliest)
+            logger.debug("earliest is %s" % earliest)
+            logFields.add('latest', latest)
+            logger.debug("latest is %s" % latest)
+        else:
+            earliest = 0
 
         logFields.add('status', 'indexstats')
         logger.debug("status is %s" % 'indexstats')
