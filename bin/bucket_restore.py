@@ -16,7 +16,7 @@ SPLUNK_HOME = os.environ['SPLUNK_HOME']
 from lib import liblogger
 logger = liblogger.setup_logging('splunk.cold2frozen')
 
-#TODO: Remove for prod
+# To enable debugging
 #logger.setLevel(logging.DEBUG)
 
 def main():
@@ -32,6 +32,8 @@ def main():
     parser.add_argument('-s','--start', metavar='startdate', dest='startdate', type=str, help='start day: DDMMYYYY', required=True)
     parser.add_argument('-e','--end', metavar='enddate', dest='enddate', type=str, help='end day: DDMMYYYY', required=True)
     parser.add_argument('-t','--target', metavar='targetdir', dest='targetdir', type=str, help='target directory', required=True)
+    parser.add_argument('-c','--config', metavar='configfile', dest='configfile', type=str, help='config file', default='cold2frozen.conf', required=False)
+
 
     args = parser.parse_args()
 
@@ -44,12 +46,12 @@ def main():
         msg = 'Cannot write to directory %s' % args.targetdir
         logger.error(msg)
         raise Exception(msg)
-
+    
     # Create logFields Object
     logFields = libc2f.logDict()
 
     # Read in config file
-    config = libc2f.readConfig(app_path)
+    config = libc2f.readConfig(app_path,args.configfile)
     # Get the storage handler
     storage = libc2f.connStorage(config)
 

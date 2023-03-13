@@ -17,19 +17,24 @@ def verifySplunkHome():
                     'manually you need to export it before processing')
         sys.exit(1)
 
-def readConfig(app_path):
+def readConfig(app_path,config_file="cold2frozen.conf"):
     import configparser
 
     # Discover app path
     # app name
     APP = os.path.basename(app_path)
     logger.debug('Appname: %s' % APP)
-    CONFIG_FILE = "cold2frozen.conf"
+
+    # Check if there is a path given
+    if config_file.find('/')!=-1:
+        msg = 'Custom config file (%s) must reside in the app path. Please specify filename only.' % (config_file)
+        logger.error(msg)
+        sys.exit(msg)  
 
     # Get config
     config = configparser.RawConfigParser()
-    default_config_inifile = os.path.join(app_path, "default", CONFIG_FILE)
-    config_inifile = os.path.join(app_path, "local", CONFIG_FILE)
+    default_config_inifile = os.path.join(app_path, "default", config_file)
+    config_inifile = os.path.join(app_path, "local", config_file)
 
     # First read default config
     logger.debug('Reading config file: %s' % default_config_inifile)
