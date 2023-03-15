@@ -65,11 +65,15 @@ def connStorage(config):
             kwargs['s3_endpoint'] = config.get(CONFIG_SECTION, "S3_ENDPOINT")
         if "s3_verify_cert" in dict(config.items(CONFIG_SECTION)):
             s3_verify_cert = config.get(CONFIG_SECTION, "S3_VERIFY_CERT")
-            if s3_verify_cert != "True" and s3_verify_cert != "False":
-                msg = "Value '%s' for S3_VERIFY_CERT not supported, must be 'True' or 'False'" % s3_verify_cert
-                logger.error(msg)
-                raise Exception(msg)
-            kwargs['s3_verify_cert'] = eval(s3_verify_cert)
+            if s3_verify_cert != "False":
+                if not os.path.isfile(s3_verify_cert):
+                    msg = "Value '%s' for S3_VERIFY_CERT not supported, must be 'False' or a readable pem file." % s3_verify_cert
+                    logger.error(msg)
+                    raise Exception(msg)
+                else:
+                    kwargs['s3_verify_cert'] = s3_verify_cert
+            else:
+                kwargs['s3_verify_cert'] = eval(s3_verify_cert)
         kwargs['access_key'] = config.get(CONFIG_SECTION, "ACCESS_KEY")
         kwargs['secret_key'] = config.get(CONFIG_SECTION, "SECRET_KEY")
         kwargs['archive_dir'] = config.get(CONFIG_SECTION, "ARCHIVE_DIR")

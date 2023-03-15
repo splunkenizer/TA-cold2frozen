@@ -37,12 +37,12 @@ class c2fS3:
     def archive_dir(self):
         return self._archive_dir
 
-    def _resource_s3(self, access_key, secret_key: str, s3_endpoint: str, s3_verify_cert: bool):
+    def _resource_s3(self, access_key, secret_key: str, s3_endpoint: str, s3_verify_cert: str):
         s3_resource = boto3.resource('s3', aws_access_key_id=access_key,
                         aws_secret_access_key=secret_key, endpoint_url=s3_endpoint, verify=s3_verify_cert)
         return s3_resource
 
-    def _client_s3(self, access_key, secret_key: str, s3_endpoint: str, s3_verify_cert: bool):
+    def _client_s3(self, access_key, secret_key: str, s3_endpoint: str, s3_verify_cert: str):
         s3_client = boto3.client('s3', aws_access_key_id=access_key,
                         aws_secret_access_key=secret_key, endpoint_url=s3_endpoint, verify=s3_verify_cert)
         return s3_client
