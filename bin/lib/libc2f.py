@@ -50,11 +50,16 @@ def readConfig(app_path,config_file="cold2frozen.conf"):
     logger.debug('Reading config file: %s' % config_inifile)
     config.read(config_inifile)
 
+    # Add the app_path to it
+    config.add_section('Internal')
+    config.set('Internal', 'APP_PATH', app_path)
+
     return config
 
 def connStorage(config):
     CONFIG_SECTION = "cold2frozen"
     ARCHIVE_TYPE = config.get(CONFIG_SECTION, "ARCHIVE_TYPE")
+    APP_PATH = config.get("Internal", "APP_PATH")
     if ARCHIVE_TYPE == "dir":
         ARCHIVE_DIR = config.get(CONFIG_SECTION, "ARCHIVE_DIR")
         storage = libdir.c2fDir(ARCHIVE_DIR)
@@ -66,6 +71,8 @@ def connStorage(config):
         if "s3_verify_cert" in dict(config.items(CONFIG_SECTION)):
             s3_verify_cert = config.get(CONFIG_SECTION, "S3_VERIFY_CERT")
             if s3_verify_cert != "False":
+                if s3_verify_cert.find('/')==-1:
+                    s3_verify_cert = os.path.join(APP_PATH, "certs", s3_verify_cert)
                 if not os.path.isfile(s3_verify_cert):
                     msg = "Value '%s' for S3_VERIFY_CERT not supported, must be 'False' or a readable pem file." % s3_verify_cert
                     logger.error(msg)
