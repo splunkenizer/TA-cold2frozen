@@ -1,3 +1,4 @@
+from __future__ import print_function
 from lib import libdir
 from lib import libs3
 import sys, os, gzip, shutil, subprocess
@@ -5,6 +6,7 @@ import socket
 import time
 from datetime import datetime, timedelta
 import logging
+from io import open
 logger = logging.getLogger('splunk.cold2frozen')
 
 def verifySplunkHome():
@@ -237,6 +239,7 @@ class logDict(dict):
     # Function to return kv list of fields
     def kvout(self):
         kvarray = []
-        for key, value in self.__logevent.items():
+        for key, value in list(self.__logevent.items()):
             kvarray.append("%s=%s" % (key, value))
         return ", ".join(kvarray)
+

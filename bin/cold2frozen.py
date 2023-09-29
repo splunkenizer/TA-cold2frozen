@@ -21,6 +21,7 @@ import re
 import logging
 import time
 import atexit
+from io import open
 
 # Verify SPLUNK_HOME
 libc2f.verifySplunkHome()
@@ -232,3 +233,4 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit()
+

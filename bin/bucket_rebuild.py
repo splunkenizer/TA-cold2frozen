@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
 from lib import libc2f
 from lib import libbuckets
 import os, sys
@@ -9,6 +10,8 @@ import re
 import logging
 import time
 from multiprocessing import Process, Queue
+from io import open
+from six.moves import range
 
 # Verify SPLUNK_HOME
 libc2f.verifySplunkHome()
@@ -134,3 +137,4 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit()
+
