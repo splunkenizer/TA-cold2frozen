@@ -1,5 +1,6 @@
 import sys, os, shutil
 import logging
+from io import open
 logger = logging.getLogger('splunk.cold2frozen')
 
 class c2fDir:
@@ -137,3 +138,4 @@ class c2fDir:
         except OSError as ex:
             msg = 'Cannot remove bucket=%s' % full_bucket_dir
             logger.error(msg)
+

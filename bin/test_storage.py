@@ -3,6 +3,7 @@
 # Purpose:
 # Test script to test the functions of the storage library
 
+from __future__ import print_function
 from lib import libc2f
 from lib import libdir
 from lib import libs3
@@ -77,3 +78,4 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit()
+
