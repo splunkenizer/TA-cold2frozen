@@ -117,8 +117,9 @@ def getBucketSizeRaw(bucketPath):
     rawSizeFile = os.path.join(bucketPath,".rawSize")
     if os.path.isfile(rawSizeFile):
         with open(rawSizeFile, "r") as f:
-            size = f.read().rstrip()
             logger.debug("Getting raw size for bucket %s" % bucketPath)
+            size = f.read().rstrip()
+            size = size if size.isdigit() else -1
     return int(size)
 
 def bucketDir(storage, bucketPath):
